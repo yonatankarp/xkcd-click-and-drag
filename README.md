@@ -8,9 +8,10 @@ The repository includes the following files:
 
 - `tiles/`: The individual tiles as they appear on the XKCD website.
 - `rows/`: 14 files, each representing a single row of combined tiles.
+- `code/`: Horrible code from ChatGPT that was used to generate the full comic.
 
 Additionally,
-you can obtain the full comic by using the file `xkcd-click-and-drag.png`.
+you can get the full comic by using the file `xkcd-click-and-drag.png`.
 Please be patient, as it is a large file!
 
 For those who use Gimp,
