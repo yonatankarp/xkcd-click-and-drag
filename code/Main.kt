@@ -1,68 +1,85 @@
-import io.ktor.client.HttpClient
-import io.ktor.client.engine.cio.CIO
-import io.ktor.client.request.get
-import io.ktor.client.statement.bodyAsChannel
-import io.ktor.utils.io.jvm.javaio.toInputStream
-import java.io.File
-import java.io.InputStream
-import javax.imageio.ImageIO
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
 
-private const val IMAGE_DIRECTORY = "/images"
+private const val imageDirectory = "/images"
 
-suspend fun fetchImageFromUrl(imageUrl: String): InputStream? {
-    HttpClient(CIO).use { client ->
-        val response = client.get(imageUrl)
-        if (response.status.value == 200) {
-            return response.bodyAsChannel().toInputStream()
-        } else {
-            println("Failed to fetch image from $imageUrl")
-            return null
-        }
+fun main(args: Array<String>) {
+    if (args.isEmpty() || args.contains("--help") || args.contains("-h")) {
+        printHelp()
+        return
     }
-}
 
-suspend fun saveImageFromUrl(input: InputStream, outputFilePath: String) {
-    withContext(Dispatchers.IO) {
-        val bufferedImage = ImageIO.read(input)
-        ImageIO.write(bufferedImage, "png", File(outputFilePath))
-    }
-}
+    val runFetch = args.shouldFetch()
+    val runCombine = args.shouldCombineRows()
+    val runCombineAll = args.shouldCombineAll()
+    val imageDirectory = args.getImageDirectoryOrDefault()
 
-suspend fun repeatInDirection(
-    x: String,
-    y: String,
-    xTimes: Int = 50,
-    yTimes: Int = 50
-) {
-    repeat(xTimes) { i ->
-        repeat(yTimes) { j ->
-            runCatching {
-                val index = "${i + 1}$x${j + 1}$y"
-                println("Fetching $index.png")
-                fetchImageFromUrl(imageUrl = "http://imgs.xkcd.com/clickdrag/$index.png")
-                    ?.let {
-                        saveImageFromUrl(
-                            input = it,
-                            outputFilePath = "$IMAGE_DIRECTORY/$index.png"
-                        )
-                    }
-            }.onFailure {
-                println("Couldn't find more images on index ${i + 1}n${j + 1}w: ${it.message}")
+    if (runFetch) {
+        runBlocking {
+            val fetcher = Fetcher(imageDirectory)
+            launch(Dispatchers.IO) {
+                fetcher.repeatInDirection(
+                    latitude = "n",
+                    longitude = "w",
+                    latitudeSteps = 9,
+                    longitudeSteps = 33
+                )
+            }
+            launch(Dispatchers.IO) {
+                fetcher.repeatInDirection(
+                    latitude = "n",
+                    longitude = "e",
+                    latitudeSteps = 9,
+                    longitudeSteps = 48
+                )
+            }
+            launch(Dispatchers.IO) {
+                fetcher.repeatInDirection(
+                    latitude = "s",
+                    longitude = "w",
+                    latitudeSteps = 5,
+                    longitudeSteps = 17
+                )
+            }
+            launch(Dispatchers.IO) {
+                fetcher.repeatInDirection(
+                    latitude = "s",
+                    longitude = "e",
+                    latitudeSteps = 5,
+                    longitudeSteps = 7
+                )
             }
         }
     }
-}
 
-fun main() {
-    runBlocking {
-        launch(Dispatchers.IO) { repeatInDirection("n", "w", 9, 33) }
-        launch(Dispatchers.IO) { repeatInDirection("n", "e", 9, 48) }
-        launch(Dispatchers.IO) { repeatInDirection("s", "w", 5, 17) }
-        launch(Dispatchers.IO) { repeatInDirection("s", "e", 5, 7) }
+    when {
+        runCombineAll -> Combiner(imageDirectory, 256, 256).combineAll()
+        runCombine -> Combiner(imageDirectory).combine(6)
     }
 }
 
+private fun printHelp() {
+    println("Usage: program [options]")
+    println("Options:")
+    println("  -h --help            Print this help message")
+    println("  -d --directory       Specify the directory to save the images (default: /images)")
+    println("  -f --fetch           Run the fetch process")
+    println("  -c --combine         Run the combine process")
+    println("  -C --combine-all     Run the combine process with all images (each tile is 256x256 pixels)")
+    println("  -a --all             Run both fetch and combine processes")
+}
+
+private fun Array<String>.shouldFetch() =
+    this.contains("--fetch") || this.contains("-f") || this.contains("--all") || this.contains("-a")
+
+private fun Array<String>.shouldCombineRows() =
+    this.contains("--combine") || this.contains("-c") || this.contains("--all") || this.contains("-a")
+
+private fun Array<String>.shouldCombineAll() =
+    this.contains("--combine-all") || this.contains("-C")
+
+private fun Array<String>.getImageDirectoryOrDefault() =
+    this.firstOrNull { it.startsWith("--directory=") || it.startsWith("-d=") }
+        ?.substringAfter("=")
+        ?: imageDirectory
