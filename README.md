@@ -8,15 +8,10 @@ The repository includes the following files:
 
 - [images/tiles](./images/tiles): The individual tiles as they appear on the XKCD website.
 - [images/rows](./images/rows): Five files, each representing another part of the full comic.
+- [xkcd-click-and-drag.png](./xkcd-click-and-drag.png): The full comic in high resolution.
+- [xkcd-click-and-drag.xcf](./xkcd-click-and-drag.xcf): The Gimp file that combines all the rows. Be aware that this file requires approximately 43GB of memory to open.
 
-Additionally,
-you can get the full comic by using the file `xkcd-click-and-drag.png`.
-Please be patient, as it is a large file!
-
-For those who use Gimp,
-you can open the file that combines all the rows by clicking
-`xkcd-click-and-drag.xcf`.
-Note that this file requires approximately 43GB of memory.
+All the source code used to fetch and combine the images is available in the [src](./src) directory.
 
 Enjoy 🎉
 
