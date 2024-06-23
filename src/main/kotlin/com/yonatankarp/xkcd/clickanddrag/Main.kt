@@ -56,8 +56,10 @@ fun main(args: Array<String>) {
         }
     }
 
+    val (width, height) = args.getTileSize(runCombineAll)
+
     when {
-        runCombineAll -> Combiner(imageDirectory, 256, 256).combineAll()
+        runCombineAll -> Combiner(imageDirectory, width, height).combineAll()
         runCombine -> Combiner(imageDirectory).combine(MAX_COMBINED_ROWS)
     }
 }
@@ -71,13 +73,18 @@ private fun printHelp() {
     println("  -f --fetch           Run the fetch process")
     println("  -c --combine         Run the combine process")
     println("  -C --combine-all     Run the combine process with all images")
+    println("  -s --size            Specify the size of the tiles (default: 2048x2048 for combine and 256x256 for combine-all)")
 }
 
 private fun Array<String>.shouldFetch() =
-    this.contains("--fetch") || this.contains("-f") || this.contains("--all") || this.contains("-a")
+    this.contains("--fetch") || this.contains("-f") || this.contains("--all") || this.contains(
+        "-a"
+    )
 
 private fun Array<String>.shouldCombineRows() =
-    this.contains("--combine") || this.contains("-c") || this.contains("--all") || this.contains("-a")
+    this.contains("--combine") || this.contains("-c") || this.contains("--all") || this.contains(
+        "-a"
+    )
 
 private fun Array<String>.shouldCombineAll() =
     this.contains("--combine-all") || this.contains("-C")
@@ -86,3 +93,18 @@ private fun Array<String>.getImageDirectoryOrDefault() =
     this.firstOrNull { it.startsWith("--directory=") || it.startsWith("-d=") }
         ?.substringAfter("=")
         ?: DEFAULT_IMAGES_DIRECTORY
+
+private fun Array<String>.getTileSize(shouldCombineAllTiles: Boolean): Pair<Int, Int> {
+    val tileSize =
+        this.firstOrNull { it.startsWith("--size=") || it.startsWith("-s=") }
+            ?.substringAfter("=")
+            ?.split("x")
+            ?.let { (width, height) -> Pair(width.toInt(), height.toInt()) }
+            ?: if (shouldCombineAllTiles) Pair(256, 256) else Pair(2048, 2048)
+
+    if (tileSize.first <= 0 || tileSize.second <= 0 || tileSize.first > 2048 || tileSize.second > 2048) {
+        throw IllegalArgumentException("Tile size must be positive and less than or equal to 2048")
+    }
+
+    return tileSize
+}
