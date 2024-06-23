@@ -1,9 +1,10 @@
+package com.yonatankarp.xkcd.clickanddrag
+
 import java.awt.Color
 import java.awt.RenderingHints
 import java.awt.image.BufferedImage
 import java.io.File
 import javax.imageio.ImageIO
-import kotlin.math.abs
 
 data class Tile(val x: Int, val y: Int, val image: BufferedImage)
 data class Dimension(val minX: Int, val maxX: Int, val minY: Int, val maxY: Int)
@@ -30,16 +31,25 @@ class Combiner(
 
         val dimension = findDimensions(tiles)
         val finalImageWidth = (dimension.maxX - dimension.minX + 1) * tileWidth
-        val finalImageHeight = (dimension.maxY - dimension.minY + 1) * tileHeight
+        val finalImageHeight =
+            (dimension.maxY - dimension.minY + 1) * tileHeight
 
-        val finalImage = BufferedImage(finalImageWidth, finalImageHeight, BufferedImage.TYPE_INT_RGB)
+        val finalImage = BufferedImage(
+            finalImageWidth,
+            finalImageHeight,
+            BufferedImage.TYPE_INT_RGB
+        )
         val g2d = finalImage.createGraphics().apply {
-            setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR)
+            setRenderingHint(
+                RenderingHints.KEY_INTERPOLATION,
+                RenderingHints.VALUE_INTERPOLATION_BILINEAR
+            )
         }
 
         // Fill the final image with the appropriate background colors
         for (y in 0 until finalImageHeight step tileHeight) {
-            g2d.color = if (y / tileHeight + dimension.minY < 0) Color.WHITE else Color.BLACK
+            g2d.color =
+                if (y / tileHeight + dimension.minY < 0) Color.WHITE else Color.BLACK
             g2d.fillRect(0, y, finalImageWidth, tileHeight)
         }
 
@@ -54,13 +64,23 @@ class Combiner(
         g2d.dispose()
 
         runCatching {
-            ImageIO.write(finalImage, "png", File("$imageDirectory/output/combine-all.png"))
+            ImageIO.write(
+                finalImage,
+                "png",
+                File("$imageDirectory/output/combine-all.png")
+            )
             println("Low-resolution image saved successfully.")
         }.onFailure { println("Failed to save the low-resolution image: ${it.message}") }
     }
 
-    private fun loadTiles(directory: String, targetWidth: Int, targetHeight: Int): List<Tile> {
-        val tileFiles = File(directory).listFiles { _, name -> name.endsWith(".png") } ?: arrayOf()
+    private fun loadTiles(
+        directory: String,
+        targetWidth: Int,
+        targetHeight: Int
+    ): List<Tile> {
+        val tileFiles =
+            File(directory).listFiles { _, name -> name.endsWith(".png") }
+                ?: arrayOf()
         return tileFiles.mapNotNull { file ->
             try {
                 val tileName = file.nameWithoutExtension
@@ -81,43 +101,58 @@ class Combiner(
         return if (matchResult != null) {
             val (yNum, yDir, xNum, xDir) = matchResult.destructured
             val y = if (yDir == "n") -yNum.toInt() else yNum.toInt() - 1 // Adjust 's' part by -1 to correct the row placement
-            val x = if (xDir == "e") xNum.toInt() else -xNum.toInt()
+            val x = if (xDir == "e") xNum.toInt() - 1 else -xNum.toInt()
             Pair(x, y)
         } else {
             throw IllegalArgumentException("Invalid tile name: $tileName")
         }
     }
 
-    private fun buildRows(tiles: List<Tile>, maxRows: Int) {
-
+    private fun buildRows(tiles: List<Tile>, rowsPerImage: Int) {
         val dimension = findDimensions(tiles)
 
-        // Process each row separately
-        for (y in dimension.minY..minOf(dimension.maxY, dimension.minY + maxRows - 1)) {
-            val rowTiles = tiles.filter { it.y == y }
+        // Calculate the number of images needed
+        val totalRows = dimension.maxY - dimension.minY + 1
+        val numImages = (totalRows + rowsPerImage - 1) / rowsPerImage
 
-            val rowImageWidth = (dimension.maxX - dimension.minX + 1) * tileWidth
+        // Process rows in groups
+        for (imageIndex in 0 until numImages) {
+            val startY = dimension.minY + imageIndex * rowsPerImage
+            val endY = minOf(dimension.maxY, startY + rowsPerImage - 1)
 
-            // Create the row image
-            val rowImage = BufferedImage(rowImageWidth, tileHeight, BufferedImage.TYPE_INT_RGB)
-            val g2d = rowImage.createGraphics().apply {
-                // Fill the row image with the appropriate background color
-                color = if (y < 0) Color.WHITE else Color.BLACK
-                fillRect(0, 0, rowImageWidth, tileHeight)
+            val imageHeight = (endY - startY + 1) * tileHeight
+            val imageWidth = (dimension.maxX - dimension.minX + 1) * tileWidth
+
+            // Create the image
+            val combinedImage = BufferedImage(imageWidth, imageHeight, BufferedImage.TYPE_INT_RGB)
+            val g2d = combinedImage.createGraphics().apply {
+                setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR)
             }
 
-            // Draw tiles onto the row image
-            for ((index, tile) in rowTiles.sortedBy { it.x }.withIndex()) {
-                val x = index * tileWidth
-                g2d.drawImage(tile.image, x, 0, null)
+            // Fill the image with appropriate background colors
+            for (y in 0 until imageHeight step tileHeight) {
+                g2d.color = if ((startY + y / tileHeight) < 0) Color.WHITE else Color.BLACK
+                g2d.fillRect(0, y, imageWidth, tileHeight)
+            }
+
+            // Draw tiles onto the combined image
+            for (y in startY..endY) {
+                val rowTiles = tiles.filter { it.y == y }
+                val yOffset = (y - startY) * tileHeight
+
+                for (tile in rowTiles.sortedBy { it.x }) {
+                    val x = (tile.x - dimension.minX) * tileWidth
+                    g2d.drawImage(tile.image, x, yOffset, null)
+                }
             }
 
             g2d.dispose()
 
+            // Save the combined image
             runCatching {
-                ImageIO.write(rowImage, "png", File("$imageDirectory/output/row_${y + abs(dimension.minY)}.png"))
-                println("Row $y image saved successfully.")
-            }.onFailure {  println("Failed to save the row $y image: ${it.message}") }
+                ImageIO.write(combinedImage, "png", File("$imageDirectory/output/combined_rows_${imageIndex + 1}.png"))
+                println("Combined image for rows $startY to $endY saved successfully.")
+            }.onFailure { println("Failed to save the combined image for rows $startY to $endY: ${it.message}") }
         }
     }
 
@@ -129,10 +164,18 @@ class Combiner(
         return Dimension(minX, maxX, minY, maxY)
     }
 
-    private fun resizeImage(originalImage: BufferedImage, targetWidth: Int, targetHeight: Int): BufferedImage {
-        val resizedImage = BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_RGB)
+    private fun resizeImage(
+        originalImage: BufferedImage,
+        targetWidth: Int,
+        targetHeight: Int
+    ): BufferedImage {
+        val resizedImage =
+            BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_RGB)
         resizedImage.createGraphics().apply {
-            setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR)
+            setRenderingHint(
+                RenderingHints.KEY_INTERPOLATION,
+                RenderingHints.VALUE_INTERPOLATION_BILINEAR
+            )
             drawImage(originalImage, 0, 0, targetWidth, targetHeight, null)
             dispose()
         }

@@ -1,8 +1,11 @@
+package com.yonatankarp.xkcd.clickanddrag
+
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 
-private const val imageDirectory = "/images"
+private const val MAX_COMBINED_ROWS = 3
+private const val DEFAULT_IMAGES_DIRECTORY = "/images"
 
 fun main(args: Array<String>) {
     if (args.isEmpty() || args.contains("--help") || args.contains("-h")) {
@@ -55,7 +58,7 @@ fun main(args: Array<String>) {
 
     when {
         runCombineAll -> Combiner(imageDirectory, 256, 256).combineAll()
-        runCombine -> Combiner(imageDirectory).combine(6)
+        runCombine -> Combiner(imageDirectory).combine(MAX_COMBINED_ROWS)
     }
 }
 
@@ -63,11 +66,11 @@ private fun printHelp() {
     println("Usage: program [options]")
     println("Options:")
     println("  -h --help            Print this help message")
+    println("  -a --all             Run both fetch and combine processes")
     println("  -d --directory       Specify the directory to save the images (default: /images)")
     println("  -f --fetch           Run the fetch process")
     println("  -c --combine         Run the combine process")
-    println("  -C --combine-all     Run the combine process with all images (each tile is 256x256 pixels)")
-    println("  -a --all             Run both fetch and combine processes")
+    println("  -C --combine-all     Run the combine process with all images")
 }
 
 private fun Array<String>.shouldFetch() =
@@ -82,4 +85,4 @@ private fun Array<String>.shouldCombineAll() =
 private fun Array<String>.getImageDirectoryOrDefault() =
     this.firstOrNull { it.startsWith("--directory=") || it.startsWith("-d=") }
         ?.substringAfter("=")
-        ?: imageDirectory
+        ?: DEFAULT_IMAGES_DIRECTORY
