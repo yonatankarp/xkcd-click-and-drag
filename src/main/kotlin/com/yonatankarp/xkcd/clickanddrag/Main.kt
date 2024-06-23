@@ -8,7 +8,7 @@ private const val MAX_COMBINED_ROWS = 3
 private const val DEFAULT_IMAGES_DIRECTORY = "/images"
 
 fun main(args: Array<String>) {
-    if (args.isEmpty() || args.contains("--help") || args.contains("-h")) {
+    if (args.shouldPrintHelp()) {
         printHelp()
         return
     }
@@ -75,6 +75,9 @@ private fun printHelp() {
     println("  -C --combine-all     Run the combine process with all images")
     println("  -s --size            Specify the size of the tiles (default: 2048x2048 for combine and 256x256 for combine-all)")
 }
+
+private fun Array<String>.shouldPrintHelp() =
+    this.isEmpty() || this.contains("--help") || this.contains("-h")
 
 private fun Array<String>.shouldFetch() =
     this.contains("--fetch") || this.contains("-f") || this.contains("--all") || this.contains(
