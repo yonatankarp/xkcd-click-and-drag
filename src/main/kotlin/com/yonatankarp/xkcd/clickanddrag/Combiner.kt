@@ -6,6 +6,9 @@ import java.awt.image.BufferedImage
 import java.io.File
 import javax.imageio.ImageIO
 
+private val UPPER_BACKGROUND_COLOR = Color.WHITE
+private val LOWER_BACKGROUND_COLOR = Color.BLACK
+
 data class Tile(val x: Int, val y: Int, val image: BufferedImage)
 data class Dimension(val minX: Int, val maxX: Int, val minY: Int, val maxY: Int)
 
@@ -49,7 +52,7 @@ class Combiner(
         // Fill the final image with the appropriate background colors
         for (y in 0 until finalImageHeight step tileHeight) {
             g2d.color =
-                if (y / tileHeight + dimension.minY < 0) Color.WHITE else Color.BLACK
+                if (y / tileHeight + dimension.minY < 0) UPPER_BACKGROUND_COLOR else LOWER_BACKGROUND_COLOR
             g2d.fillRect(0, y, finalImageWidth, tileHeight)
         }
 
@@ -66,8 +69,8 @@ class Combiner(
         runCatching {
             ImageIO.write(
                 finalImage,
-                "png",
-                File("$imageDirectory/output/combine-all.png")
+                OUTPUT_IMAGE_FORMAT,
+                File("$imageDirectory/output/combine-all.$OUTPUT_IMAGE_FORMAT")
             )
             println("Low-resolution image saved successfully.")
         }.onFailure { println("Failed to save the low-resolution image: ${it.message}") }
@@ -79,7 +82,11 @@ class Combiner(
         targetHeight: Int
     ): List<Tile> {
         val tileFiles =
-            File(directory).listFiles { _, name -> name.endsWith(".png") }
+            File(directory).listFiles { _, name ->
+                name.endsWith(
+                    INPUT_IMAGE_FORMAT
+                )
+            }
                 ?: arrayOf()
         return tileFiles.mapNotNull { file ->
             try {
@@ -100,7 +107,8 @@ class Combiner(
         val matchResult = regex.matchEntire(tileName)
         return if (matchResult != null) {
             val (yNum, yDir, xNum, xDir) = matchResult.destructured
-            val y = if (yDir == "n") -yNum.toInt() else yNum.toInt() - 1 // Adjust 's' part by -1 to correct the row placement
+            val y =
+                if (yDir == "n") -yNum.toInt() else yNum.toInt() - 1 // Adjust 's' part by -1 to correct the row placement
             val x = if (xDir == "e") xNum.toInt() - 1 else -xNum.toInt()
             Pair(x, y)
         } else {
@@ -124,14 +132,22 @@ class Combiner(
             val imageWidth = (dimension.maxX - dimension.minX + 1) * tileWidth
 
             // Create the image
-            val combinedImage = BufferedImage(imageWidth, imageHeight, BufferedImage.TYPE_INT_RGB)
+            val combinedImage = BufferedImage(
+                imageWidth,
+                imageHeight,
+                BufferedImage.TYPE_INT_RGB
+            )
             val g2d = combinedImage.createGraphics().apply {
-                setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR)
+                setRenderingHint(
+                    RenderingHints.KEY_INTERPOLATION,
+                    RenderingHints.VALUE_INTERPOLATION_BILINEAR
+                )
             }
 
             // Fill the image with appropriate background colors
             for (y in 0 until imageHeight step tileHeight) {
-                g2d.color = if ((startY + y / tileHeight) < 0) Color.WHITE else Color.BLACK
+                g2d.color =
+                    if ((startY + y / tileHeight) < 0) Color.WHITE else Color.BLACK
                 g2d.fillRect(0, y, imageWidth, tileHeight)
             }
 
@@ -150,7 +166,11 @@ class Combiner(
 
             // Save the combined image
             runCatching {
-                ImageIO.write(combinedImage, "png", File("$imageDirectory/output/combined_rows_${imageIndex + 1}.png"))
+                ImageIO.write(
+                    combinedImage,
+                    OUTPUT_IMAGE_FORMAT,
+                    File("$imageDirectory/output/combined_rows_${imageIndex + 1}.$OUTPUT_IMAGE_FORMAT")
+                )
                 println("Combined image for rows $startY to $endY saved successfully.")
             }.onFailure { println("Failed to save the combined image for rows $startY to $endY: ${it.message}") }
         }
@@ -180,6 +200,11 @@ class Combiner(
             dispose()
         }
         return resizedImage
+    }
+
+    companion object {
+        private const val INPUT_IMAGE_FORMAT = ".png"
+        private const val OUTPUT_IMAGE_FORMAT = "png"
     }
 }
 
