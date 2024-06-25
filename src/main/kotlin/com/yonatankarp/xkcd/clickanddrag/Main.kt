@@ -4,7 +4,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 
-private const val MAX_COMBINED_ROWS = 3
+private const val MAX_COMBINED_ROWS = 1
 private const val DEFAULT_IMAGES_DIRECTORY = "/images"
 
 fun main(args: Array<String>) {
@@ -22,36 +22,38 @@ fun main(args: Array<String>) {
         runBlocking {
             val fetcher = Fetcher(imageDirectory)
             launch(Dispatchers.IO) {
-                fetcher.repeatInDirection(
-                    latitude = "n",
-                    longitude = "w",
-                    latitudeSteps = 9,
-                    longitudeSteps = 33
-                )
-            }
-            launch(Dispatchers.IO) {
-                fetcher.repeatInDirection(
-                    latitude = "n",
-                    longitude = "e",
-                    latitudeSteps = 9,
-                    longitudeSteps = 48
-                )
-            }
-            launch(Dispatchers.IO) {
-                fetcher.repeatInDirection(
-                    latitude = "s",
-                    longitude = "w",
-                    latitudeSteps = 5,
-                    longitudeSteps = 17
-                )
-            }
-            launch(Dispatchers.IO) {
-                fetcher.repeatInDirection(
-                    latitude = "s",
-                    longitude = "e",
-                    latitudeSteps = 5,
-                    longitudeSteps = 7
-                )
+                launch {
+                    fetcher.repeatInDirection(
+                        latitude = "n",
+                        longitude = "w",
+                        latitudeSteps = 9,
+                        longitudeSteps = 33
+                    )
+                }
+                launch {
+                    fetcher.repeatInDirection(
+                        latitude = "n",
+                        longitude = "e",
+                        latitudeSteps = 9,
+                        longitudeSteps = 48
+                    )
+                }
+                launch {
+                    fetcher.repeatInDirection(
+                        latitude = "s",
+                        longitude = "w",
+                        latitudeSteps = 5,
+                        longitudeSteps = 17
+                    )
+                }
+                launch {
+                    fetcher.repeatInDirection(
+                        latitude = "s",
+                        longitude = "e",
+                        latitudeSteps = 5,
+                        longitudeSteps = 7
+                    )
+                }
             }
         }
     }
