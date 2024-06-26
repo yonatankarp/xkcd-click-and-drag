@@ -17,6 +17,11 @@ Enjoy 🎉
 
 ---
 
+For the full article describing the process of fetching and combining the
+images, please refer to the [blog post](https://kotlinbackend.com/xkcd-from-tile-to-picture-seeing-the-full-image/).
+
+---
+
 The code can be executed with the following parameters:
 
 ```shell
