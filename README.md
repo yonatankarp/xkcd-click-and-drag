@@ -1,6 +1,6 @@
 # XKCD—Click and Drag
 
-![Click and Drag starting point](./entry-point.png)
+![Click and Drag starting point](./xkcd-click-and-drag-entry-point.gif)
 
 This repository contains the complete image of the "Click and Drag" comic by XKCD. You can view the original comic [here](https://xkcd.com/1110/).
 
